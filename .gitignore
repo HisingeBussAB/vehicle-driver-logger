@@ -6,7 +6,9 @@
 /.pnp
 .pnp.js
 .firebase
-*.cache
+
+
+
 
 # testing
 /coverage
@@ -25,3 +27,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 firebase-debug.log*
+.firebase/**
