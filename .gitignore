@@ -8,8 +8,6 @@
 .firebase
 
 
-
-
 # testing
 /coverage
 
@@ -30,3 +28,7 @@ firebase-debug.log*
 .firebase/**
 *.cache
 .firebase/hosting.YnVpbGQ.cache
+hosting.YnVpbGQ.cache
+firebase.js
+hosting.YnVpbGQ.cache
+config.js
