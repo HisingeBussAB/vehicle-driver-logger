@@ -6,13 +6,12 @@ import PropTypes from 'prop-types'
 
 class Signin extends Component {
   render () {
-    console.log(this.props.homeFolder)
     return (
       <div className="signin text-center">
         {this.props.signedin ? (
           <IsSignedIn />
         ) : (
-          <Signinform homeFolder={this.props.homeFolder} />
+          <Signinform />
         )}
       </div>
     )

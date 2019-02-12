@@ -1,6 +1,20 @@
 {
   "rules": {
-    ".read": true,
-    ".write": false
+    ".read": "auth != null && root.child('admin/' + auth.uid).exists() && root.child('users/' + auth.uid).exists()",
+    ".write": "false",
+    "admin": {
+      ".read": "auth != null && root.child('users/' + auth.uid).exists()",
+      ".write": "false"
+    },
+    "users": {
+      ".read": "auth != null",
+      ".write": "false"
+    },
+    "userData": {
+      "$uid": {
+        ".read": "$uid === auth.uid && root.child('users/' + auth.uid).exists()",
+        ".write": "$uid === auth.uid && root.child('users/' + auth.uid).exists()"
+     }
+   }
   }
 }

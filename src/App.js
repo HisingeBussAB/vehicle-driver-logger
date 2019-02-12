@@ -17,22 +17,30 @@ class App extends Component {
     }
   }
 
-  componentDidMount () {
+  componentWillMount () {
     const { authStateChange } = this.props
     firebase.auth().onAuthStateChanged(function (user) {
       if (user) {
+        firebase.database().ref('users').once('value', (snapshot) => {
+          if (snapshot.hasChild(firebase.auth().currentUser.uid)) {
+            authStateChange(true, firebase.auth().currentUser, true)
+          } else {
+            authStateChange(false, null, false)
+            alert('Kontakta admin för ett konto.')
+            window.location('https://hisingebuss.se')
+          }
+        }).catch(function () {
+          authStateChange(false, null, false)
+        })
         firebase.database().ref('admin').once('value', (snapshot) => {
           if (snapshot.hasChild(firebase.auth().currentUser.uid)) {
             authStateChange(true, firebase.auth().currentUser, true)
-            console.log('IS ADMIN')
           } else {
             authStateChange(true, firebase.auth().currentUser, false)
-            console.log('IS NOT ADMIN')
           }
+        }).catch(function () {
+          authStateChange(true, firebase.auth().currentUser, false)
         })
-          .catch(function () {
-            authStateChange(true, firebase.auth().currentUser, false)
-          })
       } else {
         authStateChange(false, null, false)
       }

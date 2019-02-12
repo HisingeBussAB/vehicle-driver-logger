@@ -1,37 +1,35 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
-import NotSignedIn from './notsignedin'
+import Signinform from './signin'
 import PropTypes from 'prop-types'
-
 
 class Home extends Component {
   constructor (props) {
     super(props)
     this.state = {
     }
-    
   }
-
 
   componentDidMount () {
 
   }
 
   render () {
+    const { isSignedin = false } = this.props
     return (
       <div className="Home mx-auto w-75">
 
-        {this.props.signedin ? (
+        {isSignedin ? (
           <div>
-          <h1>Lägg till körning</h1>
-          <form>
-            Förare: <input value="hi"></input>
+            <h1>Lägg till körning</h1>
+            <form>
+            Förare: <input value="hi" />
 
-          </form>
+            </form>
           </div>
         ) : (
-          <NotSignedIn />
+          <Signinform />
         )
         }
 
@@ -41,16 +39,13 @@ class Home extends Component {
 }
 
 Home.propTypes = {
-  signedin: PropTypes.bool,
-  userId  : PropTypes.string,
-  isAdmin : PropTypes.bool
+  isSignedin: PropTypes.bool,
+  userId    : PropTypes.string
 }
 
 const mapStateToProps = state => ({
-  signedin: state.user.signin,
-  user  : state.user.user,
-  isAdmin : state.user.isAdmin
-
+  isSignedin: state.user.signin,
+  user      : state.user.user,
 })
 
 const mapDispatchToProps = dispatch => bindActionCreators({
