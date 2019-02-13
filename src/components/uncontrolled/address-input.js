@@ -11,7 +11,7 @@ class AddressInput extends Component
 
   render () {
     // eslint-disable-next-line
-    return <input onChange={this.handleChange} value={this.state.address} />
+    return <input onChange={this.handleChange} value={this.state.address} placeholder="Adress (frivillig)" type="text" />
   }
 }
 export default AddressInput
