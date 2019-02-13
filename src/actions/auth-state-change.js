@@ -9,11 +9,10 @@ export function authStateChange (loginstate, user, isadmin) {
   return {
     type   : 'AUTH_STATE_CHANGED',
     payload: {
-      signin : loginstate,
-      user   : user,
-      isAdmin: isadmin
+      signin     : loginstate,
+      user       : user,
+      isAdmin    : isadmin,
+      fbresponded: true
     }
   }
-
-  
 }

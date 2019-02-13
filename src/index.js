@@ -7,7 +7,7 @@ import App from './App'
 import * as serviceWorker from './serviceWorker'
 
 import '../node_modules/bootstrap/dist/css/bootstrap.min.css'
-import '../node_modules/react-datepicker/dist/react-datepicker.css'
+import '../node_modules/react-dropdown/style.css'
 import './index.css'
 
 const target = document.querySelector('#root')

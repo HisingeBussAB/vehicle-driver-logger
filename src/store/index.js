@@ -7,9 +7,24 @@ const initialState = {
     signin: false,
     user  : {
       uid        : null,
-      displayName: null
+      displayName: null,
+      fbresponded: false
     },
     isAdmin: false
+  },
+  location: {
+    error : null,
+    active: false,
+    coords: {
+      accuracy        : null,
+      altitude        : null,
+      altitudeAccuracy: null,
+      heading         : null,
+      latitude        : null,
+      longitude       : null,
+      speed           : null
+    },
+    address: ''
   }
 }
 const enhancers = []
@@ -18,8 +33,6 @@ const middleware = [
 ]
 
 if (process.env.NODE_ENV === 'development') {
-  const freeze = require('redux-freeze')
-  middleware.push(freeze)
   const devToolsExtension = window.window.__REDUX_DEVTOOLS_EXTENSION__
 
   if (typeof devToolsExtension === 'function') {
