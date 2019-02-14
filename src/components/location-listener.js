@@ -19,7 +19,7 @@ class LocationListener extends React.Component {
 
   updateLoc = (nextProps) => {
     const { ...props } = this.props
-    if (typeof nextProps.coords !== 'undefined' && nextProps.coords !== null && ! _.isEqual(nextProps.coords, props.coords)) {
+    if (typeof nextProps.coords !== 'undefined' && nextProps.coords !== null && !_.isEqual(nextProps.coords, props.coords)) {
       nextProps.updateGeolocation(nextProps.coords, nextProps.isGeolocationAvailable,nextProps.isGeolocationEnabled, nextProps.positionError)
       return true
     }
