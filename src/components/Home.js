@@ -1,4 +1,4 @@
-import React, { Fragment, Component } from 'react'
+import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import Signinform from './signin'
@@ -21,6 +21,8 @@ class Home extends Component {
     super(props)
     this.state = {
       type         : 'end',
+      lastType     : false,
+      typeWarning  : false,
       date         : moment(),
       time         : moment(),
       datetimeerror: false,
@@ -29,10 +31,12 @@ class Home extends Component {
       regno        : '',
       regnoerror   : false,
       note         : '',
-      regnos   : [{label: '.'}],
-      lastCounter  : [],
+      regnos       : [{label: ''}],
       fbtrips      : {},
-      selected: []
+      selected     : [],
+      lastCounter  : false,
+      sendStatus: '',
+      sendStatus: true
     }
   }
 
@@ -44,18 +48,34 @@ class Home extends Component {
       this.setState({ fbtrips: result })
     })
 
-    const list = firebase.database().ref('/userData/' + user.uid + '/list/').orderByKey().limitToLast(30)
+    const ref = firebase.database().ref('/userData/' + user.uid + '/list/').orderByKey()
+    const list = ref.limitToLast(30)
     list.on('value', (snapshot) => {
       const result = snapshot.val()
-
       if (result !== null && typeof result === 'object') {
-        const lastRegnos = Object.values(result).map(item => {
-          return { label: item.regno }
-        })
-  
-        this.setState({ regnos: lastRegnos })
+        const lastRegnos = [...new Set(Object.values(result).map(item => item.regno))].sort()
+        const lastRegnoLabelled = lastRegnos.reduce((filtered, item) => {
+        if (item.length === 6) { filtered.push({label: item}) }      
+        return filtered
+      }, []);
+        this.setState({ regnos: lastRegnoLabelled })
       }
     })
+
+    const lastList = ref.limitToLast(1)
+    lastList.on('value', (snapshot) => {
+      const result = snapshot.val()
+      if (result !== null && typeof result === 'object') {    
+        const types = Object.values(result).map(item => item.type)
+        const reversedType = types[0] === 'end' ? 'start' : 'end' 
+        this.setState({ lastType: reversedType, type: reversedType})
+      }
+    })
+
+    this.typeahead.getInstance().getInput().addEventListener('blur', () => this.validateRegNo(true), false)
+
+    this.getLastCounter(true)
+    
   }
 
 
@@ -65,7 +85,7 @@ class Home extends Component {
     e.preventDefault()
     if (this.validateForm()) {
       const { user, coords } = this.props
-      const { type, date, time, counter, regno, note, address } = this.state
+      const { type, date, time, counter, regno, note } = this.state
       const datetime = moment(date.format('YYYY-MM-DD') + ' ' + time.format('HH:mm'))
       const uid = user.uid
       const postData = {
@@ -106,19 +126,109 @@ class Home extends Component {
             return firebase.database().ref().update(updates)
           })
         }
+        this.setState({
+          sendMsg: 'Uppgifterna sparades.', 
+          sendStatus: true,
+          date         : moment(),
+      time         : moment(),
+      datetimeerror: false,
+      counter      : '',
+      countererror : false,
+      regno        : '',
+      regnoerror   : false,
+      note         : ''
+        })
       })
+    } else {
+      this.setState({sendMsg: 'Sparades inte, åtgärda markerade fält.', sendStatus: false})
     }
   }
 
   validateForm = () => {
-    if (this.validateRegNo() && this.validateDateTime() && this.validateCounter()) { return true } else { return false }
+    this.resetSendMsg()
+    if (this.validateRegNo(false) && this.validateDateTime() && this.validateCounter()) { return true } else { return false }
   }
 
-  validateRegNo = () => {
+  resetSendMsg = () => {
+    this.setState({sendMsg: ''})
+  }
+
+  validateRegNo = (autoFlag) => {
+    const check = this.typeahead.getInstance().getInput().value
+    if (!(check !== null && typeof check === 'string' && check.length > 0)) {
+      this.setState({regno: '', regnoerror: 'Ange registrerings nummer.' })
+      this.typeahead.getInstance().getInput().classList.add("test-danger")
+      this.typeahead.getInstance().getInput().classList.add("border-danger")
+      return false
+    } 
+   
+    if (!(/^\D{3}\d{3}$/.exec(check))) {
+      this.setState({regno: '',  regnoerror: 'Felformaterat reg nr. XXX888' })
+      this.typeahead.getInstance().getInput().classList.add("test-danger")
+      this.typeahead.getInstance().getInput().classList.add("border-danger")
+      return false
+    }
+  
+    this.setState({regno: check.substring(0, 3).toUpperCase() + check.substring(3, 6), regnoerror: false }, () => this.getLastCounter(autoFlag))
+    this.typeahead.getInstance().getInput().classList.remove("test-danger")
+    this.typeahead.getInstance().getInput().classList.remove("border-danger")
     return true
   }
 
+  getLastCounter = (doReset) => {
+    const { regno, regnoerror, countererror, counter } = this.state
+    const { user } = this.props
+    if (!regnoerror && regno.length > 5) {
+    const ref = firebase.database().ref('userData/' + user.uid + '/list/')
+    ref.orderByChild('regno').equalTo(regno).limitToLast(1).once('value').then(snapshot => {
+
+      if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
+        snapshot.forEach((childSnapshot) => {
+          const value = childSnapshot.val()
+          if (Number.isInteger(Number(counter)) && !(counter < 100 || counter > 50000000))
+            this.setState({sendMsg: '', lastCounter: value.counter })
+            if (doReset && (countererror !== false || typeof counter === 'undefined' || counter == 0 || counter === null || counter === '' )) {
+              this.setState({counter: value.counter }, () => this.validateCounter())
+            } else if (typeof counter === 'undefined' || counter === 0 || counter === null || counter === '') {
+              this.setState({counter: '' }, () => this.validateCounter())
+            }          
+          return true;
+      });
+      
+    }
+    });
+  }
+  }
+
   validateCounter = () => {
+    const { counter, lastCounter, regno } = this.state
+
+    if (!Number.isInteger(Number(counter))) {
+      this.setState({countererror: 'Får bara innehålla siffror. Inga decimaltecken eller tusendelare.' })
+      return false
+    }
+
+    if (counter < 100 || counter > 50000000) {
+      this.setState({countererror: 'Siffran verkar orimligt stor eller liten.' })
+      return false
+    }
+    if (regno.length === 6 && lastCounter !== false && lastCounter > 100 && lastCounter < 50000000) {
+      if ((lastCounter - counter) > 0) {
+        this.setState({countererror: 'Får inte vara lägre än förra på detta fordon.' })
+        return false
+      }
+    }
+    if (counter < 100000) {
+      this.setState({countererror: 'Saknas det siffror?' })
+    } else if (counter < 1000000) {
+      this.setState({countererror: 'För många siffror?' })
+    } else {
+      this.setState({countererror: false })
+    }
+
+
+
+
     return true
   }
 
@@ -134,8 +244,12 @@ class Home extends Component {
       return false
     }
     const datetime = moment(date.format('YYYY-MM-DD') + ' ' + time.format('HH:mm'))
-    if (!datetime.isAfter(moment().subtract(26, 'hours'))) {
-      this.setState({ datetimeerror: 'Datum och tid måste vara mindre än 24 timmar sedan.' })
+    if (!datetime.isAfter(moment().subtract(48, 'hours'))) {
+      this.setState({ datetimeerror: 'Datum och tid måste vara mindre än 48 timmar sedan.' })
+      return false
+    }
+    if (!datetime.isBefore(moment().add(49, 'hours'))) {
+      this.setState({ datetimeerror: 'Datum och tid kan inte vara mer än 48 timmar framåt.' })
       return false
     }
     this.setState({ datetimeerror: false })
@@ -151,50 +265,34 @@ class Home extends Component {
   }
 
   onDateChange = e => {
-    const { date } = this.state
-    console.log(date)
-    this.setState({ date: moment(e.target.value + ' ' + moment().format('HH:mm')) }, () => this.validateDateTime())
+    const { time } = this.state
+    this.setState({sendMsg: '', date: moment(e.target.value + ' ' + time.format('HH:mm')) }, () => this.validateDateTime())
   }
 
   onTimeChange = e => {
-    const { time } = this.state
-    this.setState({ time: moment(moment().format('YYYY-MM-DD') + ' ' + e.target.value) })
+    const { date } = this.state
+    this.setState({sendMsg: '', time: moment(date.format('YYYY-MM-DD') + ' ' + e.target.value) })
   }
 
-  _onSelect = (e) => this.setState({ type: e.value })
+  _onSelect = (e) => this.setState({sendMsg: '', type: e.value }, () => this.validateStart())
 
-  handleChange = e => {
-    console.log(e.target.name)
-    console.log(e.target.value)
-    if (e.target.name === 'counter') {
-
-    }
-    if (e.target.name === 'vehicle') {
-
-    }
-    if (e.target.name === 'date') {
-
-    }
-    if (e.target.name === 'date') {
-
-    }
-    this.setState({ [e.target.name]: e.target.value })
+  handleChange = e => {   
+    this.setState({sendMsg: '', [e.target.name]: e.target.value }, () => {this.validateCounter(); this.validateForm()})
   }
 
-  _handleTChange = (e) => {
-console.log(e)
-    if (e[0] === null || typeof e[0] === 'undefined') {
-      this.handleChange({target: {name: 'regno', value: ''}})
+  validateStart = () => {
+    const {type, lastType } = this.state
+    if (type !== lastType) {
+      this.setState({sendMsg: '',typeWarning: true})
     } else {
-      this.handleChange({target: {name: 'regno', value: e[0].label}})
-
+      this.setState({sendMsg: '',typeWarning: false})
     }
+    
   }
 
   render () {
-    console.log(this.state)
     const { isSignedin = false, user, address, locError } = this.props
-    const {...state } = this.state;
+    const { ...state } = this.state;
 
     const options = [
       { value: 'start', label: 'Start för körning' },
@@ -214,46 +312,47 @@ console.log(e)
             <h4>Förare: {user.displayName}</h4>
             <form className="w-100 py-2 my-1 mx-auto" style={{ width: '100%', maxWidth: '650px' }}>
 
-              <Dropdown id="start-slut" name="start-slut" className="text-center p-0 my-2 btn btn-lg mx-auto w-100" options={options} onChange={this._onSelect} value={defaultOption} placeholder="Välj start eller slut på uppdrag" title="Anger om uppgifterna nedan för start eller slut på uppdrag." />
-
+              <Dropdown id="start-slut" name="start-slut" className={'text-center p-0 my-2 btn btn-lg mx-auto w-100 ' + this.errorClass(state.typeWarning)} options={options} onChange={this._onSelect} value={defaultOption} placeholder="Välj start eller slut på uppdrag" title="Anger om uppgifterna nedan för start eller slut på uppdrag." />
+              <footer className="text-center text-info p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.typeWarning ? 'Matchar inte start/avslut på föregående inmatning' : null}</footer>
               <div className="input-group mt-2 pt-1 w-100 mx-auto">
-                <div className="input-group-prepend">
-                  <span className={'input-group-text' + this.errorClass(state.datetimeerror)} id="inputGroup-sizing-default">Datum:</span>
-                </div>
-                <input className={'form-control ' + this.errorClass(state.datetimeerror)} id="datum" name="datum" value={state.date.format('YYYY-MM-DD')} placeholder="YYYY-MM-DD" type="date" onChange={this.onDateChange} title="Anger datum" />
+             
+                <input className={'text-center form-control ' + this.errorClass(state.datetimeerror)} id="datum" name="datum" value={state.date.format('YYYY-MM-DD')} placeholder="YYYY-MM-DD" type="date" onChange={this.onDateChange} title="Anger datum" />
                 <div className="input-group-append">
-                  <span className={'input-group-text' + this.errorClass(state.datetimeerror)} id="inputGroup-sizing-default">Tid:</span>
+                  
 
-                  <input style={{ borderRadius: '0 .25rem .25rem 0', borderLeft: '0' }} className={'form-control ' + this.errorClass(state.datetimeerror)} name="tid" value={state.time.format('HH:mm')} placeholder="HH:mm" type="time" onChange={this.onTimeChange} title="Anger klockslag" />
+                  <input style={{ borderRadius: '0 .25rem .25rem 0', borderLeft: '0' }} className={'text-center form-control ' + this.errorClass(state.datetimeerror)} name="tid" value={state.time.format('HH:mm')} placeholder="HH:mm" type="time" onChange={this.onTimeChange} title="Anger klockslag" />
                 </div>
 
               </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.datetimeerror}</footer>
-              <div className="input-group mt-2 pt-1 w-100 mx-auto flex-nowrap">
+              <div className={'input-group mt-2 pt-1 w-100 mx-auto flex-nowrap' + this.errorClass(state.regnoerror)}>
                 <div className="input-group-prepend">
-                <span className="input-group-text">RegNr:</span>
+                <span className={'input-group-text ' + this.errorClass(state.regnoerror)}>RegNr:</span>
                 </div>
-             
-
+            
                              <Typeahead  className="border-left-0 rounded-0 rounded-right d-flex align-self-stretch flex-nowrap w-100"
-                name="regno"
+                name="regnr"
                 onChange={(selected) => {
-                  console.log(selected)
-    this.setState({selected});
+    this.setState({selected}, () => this.validateRegNo(true));
   }}
   options={state.regnos}
   selected={state.selected}
   placeholder="Skriv reg. nummer"
+  ref={(typeahead) => this.typeahead = typeahead}
 />
 </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.regnoerror}</footer>
 
               <div className="input-group mt-2 p-0 w-100 mx-auto">
                 <div className="input-group-prepend">
-                  <span className="input-group-text" id="inputGroup-sizing-default">Mätarställning:</span>
+                  <span className={'input-group-text ' + this.errorClass(state.countererror)} id="inputGroup-sizing-default">Odo:</span>
                 </div>
-                <input className="form-control" id="matarstalling" name="counter" value={state.counter} placeholder="Mätarställning" type="number" onChange={this.handleChange} title="Anger mätarställning" />
-
+                <input step="1" className={'form-control ' + this.errorClass(state.countererror)} id="matarstalling" name="counter" value={state.counter} placeholder="Mätarställning" type="number" onChange={this.handleChange} title="Anger mätarställning" />
+                <div className="input-group-append">
+                <span className={'input-group-text p-0 ' + this.errorClass(state.regnoerror)}><button type="button" style={{padding:'2px', paddingBottom:'6px'}} class="close" aria-label="Close" onClick={() => this.setState({counter: ''})}>
+  <span aria-hidden="true">&times;</span>
+</button></span>
+                </div>
               </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.countererror}</footer>
               <div className="input-group mt-2 p-0 w-100 mx-auto">
@@ -261,7 +360,11 @@ console.log(e)
                   <span className="input-group-text" id="inputGroup-sizing-default">Adress:</span>
                 </div>
                 <AddressInput id="address" name="address" defaultAddress={address} key={address} onChange={this.handleAddressChange} addressRef={el => this.inputAddress = el} />
-
+                <div className="input-group-append">
+                <span className="input-group-text p-0"><button type="button" class="close" onClick={() => {this.inputAddress.value = ''}} style={{padding:'2px', paddingBottom:'6px'}} aria-label="Close">
+  <span aria-hidden="true">&times;</span>
+</button></span>
+                </div>
               </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{locError}</footer>
 
@@ -274,6 +377,7 @@ console.log(e)
               </div>
 
               <button className="my-3 btn btn-danger btn-lg w-75 mx-auto" onClick={this.writeNewPost}>Spara uppgifter</button>
+              <footer className={'text-center p-1 m-1 mx-auto w-75' + state.sendStatus ? 'text-success' : 'text-danger'} style={{ fontSize: '.8rem' }}>{state.sendMsg === '' ? null : state.sendMsg}</footer>
             </form>
             <div className="small my-3 p-1 w-100 mx-auto text-center">
               <LastTripsList tripData={normalizeTripData(state.fbtrips)} />

@@ -36,3 +36,5 @@ config/config.js
 .firebase/hosting.YnVpbGQ.cache
 .firebase/hosting.YnVpbGQ.cache
 *.cache
+.firebase/hosting.YnVpbGQ.cache
+*.cache

@@ -12,3 +12,10 @@
 .rbt-input-hint-container,.rbt-input-hint-container,.rbt-input-main {
   border-radius: 0 .25rem .25rem 0 !important;
 }
+
+.c-ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  font-size: 1.047em;
+}

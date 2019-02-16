@@ -13,7 +13,10 @@
     "userData": {
       "$uid": {
         ".read": "$uid === auth.uid && root.child('users/' + auth.uid).exists()",
-        ".write": "$uid === auth.uid && root.child('users/' + auth.uid).exists()"
+        ".write": "$uid === auth.uid && root.child('users/' + auth.uid).exists()",
+        "list": {
+          ".indexOn": "regno"
+        }
      }
    }
   }

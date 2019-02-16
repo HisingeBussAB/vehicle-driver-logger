@@ -87,11 +87,19 @@ class App extends Component {
               </nav>
             </header>
 
-            <main className="main-content mt-5 pt-5 pb-5 mb-5 pl-2 pr-2 container text-center">
+            
+              { isSignedin ? (
+                <main className="main-content mt-5 pt-5 pb-5 mb-5 pl-2 pr-2 container text-center">
               <Route exact path={'/'} render={() => <Home />} />
               <Route exact path={'/history/'} render={() => <Signin />} />
               <Route exact path={'/signin/'} render={() => <Signin />} />
-            </main>
+              </main>
+              ) : (
+                <main className="main-content mt-5 pt-5 pb-5 mb-5 pl-2 pr-2 container text-center">
+                <Signin />
+                </main>
+                )}
+            
           </div>
         ) : (
           <div className="font-weight-bold mx-2 py-5 my-5 text-center">

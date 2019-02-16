@@ -14,9 +14,9 @@ export function updateGeolocation (_coords = false, isGeolocationAvailable = fal
   return async (dispatch) => {
     
     const error = isActive ? null
-      : !isGeolocationEnabled ? 'Appen måste ges behörighet till GPS'
+      : !isGeolocationEnabled ? 'Ge behörighet till GPS'
         : !isGeolocationAvailable ? 'Laddar position...'
-          : typeof _coords.accuracy === 'undefined' || _coords.accuracy > 1000 ? 'För dålig positionsdata, aktivera GPS eller ange manuellt.'
+          : typeof _coords.accuracy === 'undefined' || _coords.accuracy > 1000 ? 'Dålig positionsdata, aktivera GPS.'
             : typeof positionError.message === 'undefined' ? 'Okänt fel' : positionError.message
     let temp = ''
     if (isActive) {
