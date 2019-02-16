@@ -1,4 +1,4 @@
-import React, { Fragment, Component } from 'react'
+import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import Signinform from './signin'
@@ -11,10 +11,15 @@ import AddressInput from './uncontrolled/address-input.js'
 import firebase from '../config/firebase'
 import normalizeTripData from '../functions/normalizeTripData'
 import LastTripsList from './list/lasttripslist'
-import {Typeahead} from 'react-bootstrap-typeahead'
+import Autosuggest from 'react-autosuggest'
 
+const getSuggestionValue = suggestion => suggestion.regno;
 
-
+const renderSuggestion = suggestion => (
+  <div>
+    {suggestion.regno}
+  </div>
+);
 
 class Home extends Component {
   constructor (props) {
@@ -29,10 +34,11 @@ class Home extends Component {
       regno        : '',
       regnoerror   : false,
       note         : '',
-      regnos   : [{label: '.'}],
+      lastRegnos   : [{regno: '-'}],
       lastCounter  : [],
       fbtrips      : {},
-      selected: []
+      suggestions  : [],
+      autoc        : ''
     }
   }
 
@@ -47,19 +53,15 @@ class Home extends Component {
     const list = firebase.database().ref('/userData/' + user.uid + '/list/').orderByKey().limitToLast(30)
     list.on('value', (snapshot) => {
       const result = snapshot.val()
-
       if (result !== null && typeof result === 'object') {
         const lastRegnos = Object.values(result).map(item => {
-          return { label: item.regno }
+          return { reg: item.regno }
         })
-  
-        this.setState({ regnos: lastRegnos })
+        console.log(lastRegnos)
+        this.setState({ lastRegno: lastRegnos })
       }
     })
   }
-
-
-
 
   writeNewPost = (e) => {
     e.preventDefault()
@@ -164,8 +166,6 @@ class Home extends Component {
   _onSelect = (e) => this.setState({ type: e.value })
 
   handleChange = e => {
-    console.log(e.target.name)
-    console.log(e.target.value)
     if (e.target.name === 'counter') {
 
     }
@@ -181,20 +181,37 @@ class Home extends Component {
     this.setState({ [e.target.name]: e.target.value })
   }
 
-  _handleTChange = (e) => {
-console.log(e)
-    if (e[0] === null || typeof e[0] === 'undefined') {
-      this.handleChange({target: {name: 'regno', value: ''}})
-    } else {
-      this.handleChange({target: {name: 'regno', value: e[0].label}})
+  getSuggestions = value => {
+    const inputValue = value.trim().toLowerCase();
+    const inputLength = inputValue.length;
+    const { lastRegnos } = this.state
+  
+    return inputLength === 0 ? [] : lastRegnos.filter(regno =>
+      regno.regno.toLowerCase().slice(0, inputLength) === inputValue
+    );
+  };
 
-    }
-  }
+  onSuggestionsFetchRequested = ({ value }) => {
+    this.setState({
+      suggestions: this.getSuggestions(value)
+    });
+  };
+
+  onSuggestionsClearRequested = () => {
+    this.setState({
+      suggestions: []
+    });
+  };
+
+  onChange = (event, { newValue }) => {
+    this.setState({
+      autoc: newValue
+    });
+  };
 
   render () {
-    console.log(this.state)
     const { isSignedin = false, user, address, locError } = this.props
-    const {...state } = this.state;
+    const { autoc, ...state } = this.state
 
     const options = [
       { value: 'start', label: 'Start för körning' },
@@ -202,9 +219,13 @@ console.log(e)
     ]
     
     const defaultOption = state.type
-  
 
-   
+    const inputProps = {
+      placeholder: 'Skriv reg. nummer',
+      autoc,
+      onChange: this.onChange
+    };
+
     return (
       <div className="Home mx-auto w-100 text-center">
 
@@ -229,23 +250,23 @@ console.log(e)
 
               </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.datetimeerror}</footer>
-              <div className="input-group mt-2 pt-1 w-100 mx-auto flex-nowrap">
-                <div className="input-group-prepend">
-                <span className="input-group-text">RegNr:</span>
-                </div>
-             
 
-                             <Typeahead  className="border-left-0 rounded-0 rounded-right d-flex align-self-stretch flex-nowrap w-100"
-                name="regno"
-                onChange={(selected) => {
-                  console.log(selected)
-    this.setState({selected});
-  }}
-  options={state.regnos}
-  selected={state.selected}
-  placeholder="Skriv reg. nummer"
-/>
-</div>
+              <div className="input-group mt-2 p-0 w-100 mx-auto">
+                <div className="input-group-prepend">
+                  <span className="input-group-text" id="inputGroup-sizing-default">RegNr:</span>
+                </div>
+                <Autosuggest 
+                  className="form-control" 
+                  suggestions={state.suggestions}
+                  onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
+                  onSuggestionsClearRequested={this.onSuggestionsClearRequested}
+                  getSuggestionValue={getSuggestionValue}
+                  renderSuggestion={renderSuggestion}
+                  inputProps={inputProps}
+                />
+                <input className="form-control" id="fordon" name="regno" value={state.regno} placeholder="Regnr" type="text" onChange={this.handleChange} title="Anger regnr XXX111" pattern="[A-Z]{3}[0-9]{3}" />
+
+              </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.regnoerror}</footer>
 
               <div className="input-group mt-2 p-0 w-100 mx-auto">
@@ -290,7 +311,7 @@ console.log(e)
       </div>
     )
   }
-} 
+}
 
 Home.propTypes = {
   isSignedin: PropTypes.bool,

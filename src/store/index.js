@@ -17,12 +17,9 @@ const initialState = {
     active: false,
     coords: {
       accuracy        : null,
-      altitude        : null,
-      altitudeAccuracy: null,
-      heading         : null,
       latitude        : null,
       longitude       : null,
-      speed           : null
+      isActive        : false
     },
     address: ''
   }

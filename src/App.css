@@ -4,3 +4,11 @@
 .hb-red {
   color: #ce0000 !important;
 }
+
+.rbt-input-hint-container,.rbt-menu {
+  width: 100% !important;
+}
+
+.rbt-input-hint-container,.rbt-input-hint-container,.rbt-input-main {
+  border-radius: 0 .25rem .25rem 0 !important;
+}
