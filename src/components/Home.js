@@ -11,16 +11,14 @@ import AddressInput from './uncontrolled/address-input.js'
 import firebase from '../config/firebase'
 import normalizeTripData from '../functions/normalizeTripData'
 import LastTripsList from './list/lasttripslist'
-import {Typeahead} from 'react-bootstrap-typeahead'
-
-
+import { Typeahead } from 'react-bootstrap-typeahead'
 
 
 class Home extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      type         : 'end',
+      type         : 'start',
       lastType     : false,
       typeWarning  : false,
       date         : moment(),
@@ -28,15 +26,16 @@ class Home extends Component {
       datetimeerror: false,
       counter      : '',
       countererror : false,
+      counterwarn  : false,
       regno        : '',
       regnoerror   : false,
       note         : '',
-      regnos       : [{label: ''}],
+      regnos       : [{ label: '' }],
       fbtrips      : {},
       selected     : [],
       lastCounter  : false,
-      sendStatus: '',
-      sendStatus: true
+      sendMsg      : '',
+      sendStatus   : true
     }
   }
 
@@ -55,9 +54,9 @@ class Home extends Component {
       if (result !== null && typeof result === 'object') {
         const lastRegnos = [...new Set(Object.values(result).map(item => item.regno))].sort()
         const lastRegnoLabelled = lastRegnos.reduce((filtered, item) => {
-        if (item.length === 6) { filtered.push({label: item}) }      
-        return filtered
-      }, []);
+          if (item.length === 6) { filtered.push({ label: item }) }
+          return filtered
+        }, [])
         this.setState({ regnos: lastRegnoLabelled })
       }
     })
@@ -65,21 +64,33 @@ class Home extends Component {
     const lastList = ref.limitToLast(1)
     lastList.on('value', (snapshot) => {
       const result = snapshot.val()
-      if (result !== null && typeof result === 'object') {    
+      if (result !== null && typeof result === 'object') {
         const types = Object.values(result).map(item => item.type)
-        const reversedType = types[0] === 'end' ? 'start' : 'end' 
-        this.setState({ lastType: reversedType, type: reversedType})
+        const reversedType = types[0] === 'end' ? 'start' : 'end'
+        this.setState({ lastType: reversedType, type: reversedType }, () => this.setLastRegno())
       }
     })
 
     this.typeahead.getInstance().getInput().addEventListener('blur', () => this.validateRegNo(true), false)
 
     this.getLastCounter(true)
-    
   }
 
+  setLastRegno = () => { 
+    const { type, lastType } = this.state
+    if (type === 'start' && lastType === 'end') {
 
+    }
+    /*
+    const ref = firebase.database().ref('userData/' + user.uid + '/list/')
+    ref.orderByChild('type').equalTo('start').limitToLast(1).once('value').then(snapshot => {
+      if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
+        snapshot.forEach((childSnapshot) => {
+          const value = childSnapshot.val()
 
+*/
+        //const value = this.typeahead.getInstance().getInput().value
+  }
 
   writeNewPost = (e) => {
     e.preventDefault()
@@ -105,129 +116,131 @@ class Home extends Component {
       const updates = {}
       firebase.database().ref('userData/' + uid).once('value').then(snapshot => {
         if (snapshot.exists() === false) {
-          const newItemKey = firebase.database().ref('userData/' + uid).child('list').push().key
+          const newListKey = firebase.database().ref('userData/' + uid).child('list').push().key
           const newTripKey = firebase.database().ref('userData/' + uid).child('trips').push().key
           postData.tripkey = newTripKey
-          updates['/userData/' + uid + '/list/' + newItemKey] = postData
-          updates['/userData/' + uid + '/trips/' + newTripKey + '/start/' + newItemKey] = postData
+          postData.listkey = newListKey
+          updates['/userData/' + uid + '/list/' + newListKey] = postData
+          updates['/userData/' + uid + '/trips/' + newTripKey + '/start/' + newListKey] = postData
           return firebase.database().ref().update(updates)
         } else {
-          const newItemKey = firebase.database().ref('userData/' + uid).child('list').push().key
+          const newListKey = firebase.database().ref('userData/' + uid).child('list').push().key
+          postData.listkey = newListKey
           firebase.database().ref('userData/' + uid + '/trips/').orderByKey().limitToLast(1).once('child_added').then(snapshot => {
             if (type === 'start') {
               const newTripKey = firebase.database().ref('userData/' + uid).child('trips').push().key
               postData.tripkey = newTripKey
-              updates['/userData/' + uid + '/list/' + newItemKey] = postData
-              updates['/userData/' + uid + '/trips/' + newTripKey + '/start/' + newItemKey] = postData
+              updates['/userData/' + uid + '/list/' + newListKey] = postData
+              updates['/userData/' + uid + '/trips/' + newTripKey + '/start/' + newListKey] = postData
             } else {
-              updates['/userData/' + uid + '/list/' + newItemKey] = postData
-              updates['/userData/' + uid + '/trips/' + snapshot.key + '/end/' + newItemKey] = postData
+              postData.tripkey = snapshot.key
+              updates['/userData/' + uid + '/list/' + newListKey] = postData
+              updates['/userData/' + uid + '/trips/' + snapshot.key + '/end/' + newListKey] = postData
             }
             return firebase.database().ref().update(updates)
           })
         }
         this.setState({
-          sendMsg: 'Uppgifterna sparades.', 
-          sendStatus: true,
+          sendMsg      : 'Uppgifterna sparades.',
+          sendStatus   : true,
           date         : moment(),
-      time         : moment(),
-      datetimeerror: false,
-      counter      : '',
-      countererror : false,
-      regno        : '',
-      regnoerror   : false,
-      note         : ''
+          time         : moment(),
+          datetimeerror: false,
+          counter      : '',
+          countererror : false,
+          regno        : '',
+          regnoerror   : false,
+          note         : ''
         })
       })
     } else {
-      this.setState({sendMsg: 'Sparades inte, åtgärda markerade fält.', sendStatus: false})
+      this.setState({ sendMsg: 'Sparades inte, åtgärda markerade fält.', sendStatus: false })
     }
   }
 
   validateForm = () => {
     this.resetSendMsg()
-    if (this.validateRegNo(false) && this.validateDateTime() && this.validateCounter()) { return true } else { return false }
+    if (this.validateRegNo() && this.validateDateTime() && this.validateCounter()) { return true } else { return false }
   }
 
   resetSendMsg = () => {
-    this.setState({sendMsg: ''})
+    this.setState({ sendMsg: '' })
   }
 
-  validateRegNo = (autoFlag) => {
+  validateRegNo = (resetFlag) => {
     const check = this.typeahead.getInstance().getInput().value
     if (!(check !== null && typeof check === 'string' && check.length > 0)) {
-      this.setState({regno: '', regnoerror: 'Ange registrerings nummer.' })
-      this.typeahead.getInstance().getInput().classList.add("test-danger")
-      this.typeahead.getInstance().getInput().classList.add("border-danger")
-      return false
-    } 
-   
-    if (!(/^\D{3}\d{3}$/.exec(check))) {
-      this.setState({regno: '',  regnoerror: 'Felformaterat reg nr. XXX888' })
-      this.typeahead.getInstance().getInput().classList.add("test-danger")
-      this.typeahead.getInstance().getInput().classList.add("border-danger")
+      this.setState({ regno: '', regnoerror: 'Ange registrerings nummer.' }, () => this.getLastCounter(false))
+      this.typeahead.getInstance().getInput().classList.add('test-danger')
+      this.typeahead.getInstance().getInput().classList.add('border-danger')
       return false
     }
-  
-    this.setState({regno: check.substring(0, 3).toUpperCase() + check.substring(3, 6), regnoerror: false }, () => this.getLastCounter(autoFlag))
-    this.typeahead.getInstance().getInput().classList.remove("test-danger")
-    this.typeahead.getInstance().getInput().classList.remove("border-danger")
+
+    if (!/^\D{3}\d{3}$/.exec(check)) {
+      this.setState({ regno: '', regnoerror: 'Felformaterat reg nr. XXX888' }, () => this.getLastCounter(false))
+      this.typeahead.getInstance().getInput().classList.add('test-danger')
+      this.typeahead.getInstance().getInput().classList.add('border-danger')
+      return false
+    }
+
+    this.setState({ regno: check.substring(0, 3).toUpperCase() + check.substring(3, 6), regnoerror: false }, () => this.getLastCounter(resetFlag))
+    this.typeahead.getInstance().getInput().classList.remove('test-danger')
+    this.typeahead.getInstance().getInput().classList.remove('border-danger')
     return true
   }
 
   getLastCounter = (doReset) => {
-    const { regno, regnoerror, countererror, counter } = this.state
+    const { regnoerror, countererror, counterwarn, counter } = this.state
     const { user } = this.props
-    if (!regnoerror && regno.length > 5) {
-    const ref = firebase.database().ref('userData/' + user.uid + '/list/')
-    ref.orderByChild('regno').equalTo(regno).limitToLast(1).once('value').then(snapshot => {
-
-      if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
-        snapshot.forEach((childSnapshot) => {
-          const value = childSnapshot.val()
-          if (Number.isInteger(Number(counter)) && !(counter < 100 || counter > 50000000))
-            this.setState({sendMsg: '', lastCounter: value.counter })
-            if (doReset && (countererror !== false || typeof counter === 'undefined' || counter == 0 || counter === null || counter === '' )) {
-              this.setState({counter: value.counter }, () => this.validateCounter())
+    const regno = this.typeahead.getInstance().getInput().value
+    if (!regnoerror && regno.length === 6) {
+      const ref = firebase.database().ref('userData/' + user.uid + '/list/')
+      ref.orderByChild('regno').equalTo(regno).limitToLast(1).once('value').then(snapshot => {
+        if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
+          snapshot.forEach((childSnapshot) => {
+            const value = childSnapshot.val()
+            if (Number.isInteger(Number(value.counter)) && !(value.counter < 100 || value.counter > 50000000)) { this.setState({ sendMsg: '', lastCounter: value.counter }, () => {if (counter !== '') this.validateCounter()}) }
+            if (doReset && (countererror !== false || counterwarn !== false || typeof counter === 'undefined' || counter === 0 || counter === null || counter === '')) {
+              this.setState({ counter: value.counter }, () =>  {if (counter !== '') this.validateCounter()})
             } else if (typeof counter === 'undefined' || counter === 0 || counter === null || counter === '') {
-              this.setState({counter: '' }, () => this.validateCounter())
-            }          
-          return true;
-      });
-      
+              this.setState({ counter: '' }, () =>  {if (counter !== '') this.validateCounter()})
+            }
+            return true
+          })
+        } else {
+          this.setState({lastCounter: false}, () =>  {if (counter !== '') this.validateCounter()})
+        }
+      })
+    } else {
+      this.setState({lastCounter: false}, () =>  {if (counter !== '') this.validateCounter()})
     }
-    });
-  }
   }
 
   validateCounter = () => {
-    const { counter, lastCounter, regno } = this.state
-
+    const { counter, lastCounter } = this.state
+    const regno = this.typeahead.getInstance().getInput().value
     if (!Number.isInteger(Number(counter))) {
-      this.setState({countererror: 'Får bara innehålla siffror. Inga decimaltecken eller tusendelare.' })
+      this.setState({ counterwarn: false, countererror: 'Får bara innehålla siffror. Inga decimaltecken eller tusendelare.' })
       return false
     }
 
     if (counter < 100 || counter > 50000000) {
-      this.setState({countererror: 'Siffran verkar orimligt stor eller liten.' })
+      this.setState({ counterwarn: false, countererror: 'Siffran verkar orimligt stor eller liten.' })
       return false
     }
     if (regno.length === 6 && lastCounter !== false && lastCounter > 100 && lastCounter < 50000000) {
       if ((lastCounter - counter) > 0) {
-        this.setState({countererror: 'Får inte vara lägre än förra på detta fordon.' })
+        this.setState({ counterwarn: false, countererror: 'Får inte vara lägre än förra på detta fordon.' })
         return false
       }
     }
-    if (counter < 100000) {
-      this.setState({countererror: 'Saknas det siffror?' })
-    } else if (counter < 1000000) {
-      this.setState({countererror: 'För många siffror?' })
+    if (counter < 99999) {
+      this.setState({ counterwarn: 'Saknas det siffror?', countererror: false })
+    } else if (counter > 999999) {
+      this.setState({ counterwarn: 'För många siffror?', countererror: false })
     } else {
-      this.setState({countererror: false })
+      this.setState({ counterwarn: false, countererror: false })
     }
-
-
-
 
     return true
   }
@@ -244,8 +257,8 @@ class Home extends Component {
       return false
     }
     const datetime = moment(date.format('YYYY-MM-DD') + ' ' + time.format('HH:mm'))
-    if (!datetime.isAfter(moment().subtract(48, 'hours'))) {
-      this.setState({ datetimeerror: 'Datum och tid måste vara mindre än 48 timmar sedan.' })
+    if (!datetime.isAfter(moment().subtract(7, 'days'))) {
+      this.setState({ datetimeerror: 'Datum och tid måste vara mindre än 7 dagar sedan.' })
       return false
     }
     if (!datetime.isBefore(moment().add(49, 'hours'))) {
@@ -264,45 +277,50 @@ class Home extends Component {
     }
   }
 
+  warningClass = (test) => {
+    if (test !== false) {
+      return ' text-warning border-warning '
+    } else {
+      return ''
+    }
+  }
+
   onDateChange = e => {
     const { time } = this.state
-    this.setState({sendMsg: '', date: moment(e.target.value + ' ' + time.format('HH:mm')) }, () => this.validateDateTime())
+    this.setState({ sendMsg: '', date: moment(e.target.value + ' ' + time.format('HH:mm')) }, () => this.validateDateTime())
   }
 
   onTimeChange = e => {
     const { date } = this.state
-    this.setState({sendMsg: '', time: moment(date.format('YYYY-MM-DD') + ' ' + e.target.value) })
+    this.setState({ sendMsg: '', time: moment(date.format('YYYY-MM-DD') + ' ' + e.target.value) })
   }
 
-  _onSelect = (e) => this.setState({sendMsg: '', type: e.value }, () => this.validateStart())
+  _onSelect = (e) => this.setState({ sendMsg: '', type: e.value }, () => this.validateStart())
 
-  handleChange = e => {   
-    this.setState({sendMsg: '', [e.target.name]: e.target.value }, () => {this.validateCounter(); this.validateForm()})
+  handleChange = e => {
+    this.setState({ sendMsg: '', [e.target.name]: e.target.value }, () => { this.validateCounter(); this.validateForm() })
   }
 
   validateStart = () => {
-    const {type, lastType } = this.state
+    const { type, lastType } = this.state
     if (type !== lastType) {
-      this.setState({sendMsg: '',typeWarning: true})
+      this.setState({ sendMsg: '', typeWarning: true })
     } else {
-      this.setState({sendMsg: '',typeWarning: false})
+      this.setState({ sendMsg: '', typeWarning: false })
     }
-    
   }
 
   render () {
     const { isSignedin = false, user, address, locError } = this.props
-    const { ...state } = this.state;
+    const { ...state } = this.state
 
     const options = [
       { value: 'start', label: 'Start för körning' },
       { value: 'end', label: 'Avslut av körning' }
     ]
-    
-    const defaultOption = state.type
-  
 
-   
+    const defaultOption = state.type
+
     return (
       <div className="Home mx-auto w-100 text-center">
 
@@ -315,10 +333,9 @@ class Home extends Component {
               <Dropdown id="start-slut" name="start-slut" className={'text-center p-0 my-2 btn btn-lg mx-auto w-100 ' + this.errorClass(state.typeWarning)} options={options} onChange={this._onSelect} value={defaultOption} placeholder="Välj start eller slut på uppdrag" title="Anger om uppgifterna nedan för start eller slut på uppdrag." />
               <footer className="text-center text-info p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.typeWarning ? 'Matchar inte start/avslut på föregående inmatning' : null}</footer>
               <div className="input-group mt-2 pt-1 w-100 mx-auto">
-             
+
                 <input className={'text-center form-control ' + this.errorClass(state.datetimeerror)} id="datum" name="datum" value={state.date.format('YYYY-MM-DD')} placeholder="YYYY-MM-DD" type="date" onChange={this.onDateChange} title="Anger datum" />
                 <div className="input-group-append">
-                  
 
                   <input style={{ borderRadius: '0 .25rem .25rem 0', borderLeft: '0' }} className={'text-center form-control ' + this.errorClass(state.datetimeerror)} name="tid" value={state.time.format('HH:mm')} placeholder="HH:mm" type="time" onChange={this.onTimeChange} title="Anger klockslag" />
                 </div>
@@ -327,43 +344,44 @@ class Home extends Component {
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.datetimeerror}</footer>
               <div className={'input-group mt-2 pt-1 w-100 mx-auto flex-nowrap' + this.errorClass(state.regnoerror)}>
                 <div className="input-group-prepend">
-                <span className={'input-group-text ' + this.errorClass(state.regnoerror)}>RegNr:</span>
+                  <span className={'input-group-text ' + this.errorClass(state.regnoerror)}>RegNr:</span>
                 </div>
-            
-                             <Typeahead  className="border-left-0 rounded-0 rounded-right d-flex align-self-stretch flex-nowrap w-100"
-                name="regnr"
-                onChange={(selected) => {
-    this.setState({selected}, () => this.validateRegNo(true));
-  }}
-  options={state.regnos}
-  selected={state.selected}
-  placeholder="Skriv reg. nummer"
-  ref={(typeahead) => this.typeahead = typeahead}
-/>
-</div>
+
+                <Typeahead className="border-left-0 rounded-0 rounded-right d-flex align-self-stretch flex-nowrap w-100"
+                  name="regnr"
+                  onChange={(selected) => {
+                    this.setState({ selected }, () => this.validateRegNo(true))
+                  }}
+                  options={state.regnos}
+                  selected={state.selected}
+                  placeholder="Skriv reg. nummer"
+                  // eslint-disable-next-line no-return-assign
+                  ref={(typeahead) => this.typeahead = typeahead}
+                />
+              </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.regnoerror}</footer>
 
               <div className="input-group mt-2 p-0 w-100 mx-auto">
                 <div className="input-group-prepend">
-                  <span className={'input-group-text ' + this.errorClass(state.countererror)} id="inputGroup-sizing-default">Odo:</span>
+                  <span className={'input-group-text ' + this.warningClass(state.counterwarn) + this.errorClass(state.countererror)} id="inputGroup-sizing-default">Odo:</span>
                 </div>
-                <input step="1" className={'form-control ' + this.errorClass(state.countererror)} id="matarstalling" name="counter" value={state.counter} placeholder="Mätarställning" type="number" onChange={this.handleChange} title="Anger mätarställning" />
+                <input step="1" className={'form-control ' + this.warningClass(state.counterwarn) + this.errorClass(state.countererror)} id="matarstalling" name="counter" value={state.counter} placeholder="Mätarställning" type="number" onChange={this.handleChange} title="Anger mätarställning" />
                 <div className="input-group-append">
-                <span className={'input-group-text p-0 ' + this.errorClass(state.regnoerror)}><button type="button" style={{padding:'2px', paddingBottom:'6px'}} class="close" aria-label="Close" onClick={() => this.setState({counter: ''})}>
-  <span aria-hidden="true">&times;</span>
-</button></span>
+                  <span className={'input-group-text p-0 ' + this.warningClass(state.counterwarn) + this.errorClass(state.countererror)}><button type="button" style={{ padding: '2px', paddingBottom: '6px' }} className="close" aria-label="Close" onClick={() => this.setState({ counter: '' })}>
+                    <span aria-hidden="true">&times;</span>
+                  </button></span>
                 </div>
               </div>
-              <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.countererror}</footer>
+              <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.countererror ? state.countererror : state.counterwarn }</footer>
               <div className="input-group mt-2 p-0 w-100 mx-auto">
                 <div className="input-group-prepend">
                   <span className="input-group-text" id="inputGroup-sizing-default">Adress:</span>
                 </div>
                 <AddressInput id="address" name="address" defaultAddress={address} key={address} onChange={this.handleAddressChange} addressRef={el => this.inputAddress = el} />
                 <div className="input-group-append">
-                <span className="input-group-text p-0"><button type="button" class="close" onClick={() => {this.inputAddress.value = ''}} style={{padding:'2px', paddingBottom:'6px'}} aria-label="Close">
-  <span aria-hidden="true">&times;</span>
-</button></span>
+                  <span className="input-group-text p-0"><button type="button" className="close" onClick={() => { this.inputAddress.value = '' }} style={{ padding: '2px', paddingBottom: '6px' }} aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button></span>
                 </div>
               </div>
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{locError}</footer>
@@ -377,10 +395,10 @@ class Home extends Component {
               </div>
 
               <button className="my-3 btn btn-danger btn-lg w-75 mx-auto" onClick={this.writeNewPost}>Spara uppgifter</button>
-              <footer className={'text-center p-1 m-1 mx-auto w-75' + state.sendStatus ? 'text-success' : 'text-danger'} style={{ fontSize: '.8rem' }}>{state.sendMsg === '' ? null : state.sendMsg}</footer>
+              <footer className={'text-center p-1 m-1 mx-auto w-75 ' + (state.sendStatus ? 'text-success' : 'text-danger')} style={{ fontWeight: 'bold', fontSize: '1rem' }}>{state.sendMsg === '' ? null : state.sendMsg}</footer>
             </form>
             <div className="small my-3 p-1 w-100 mx-auto text-center">
-              <LastTripsList tripData={normalizeTripData(state.fbtrips)} />
+              <LastTripsList tripData={normalizeTripData(state.fbtrips)} isHistory={false}/>
 
             </div>
 
@@ -394,7 +412,7 @@ class Home extends Component {
       </div>
     )
   }
-} 
+}
 
 Home.propTypes = {
   isSignedin: PropTypes.bool,

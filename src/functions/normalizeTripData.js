@@ -1,5 +1,4 @@
 function normalizeTripData (tripData) {
-
   if (tripData === null || typeof tripData !== 'object') {
     return false
   }
@@ -18,16 +17,12 @@ function normalizeTripData (tripData) {
       if (trip.end !== null && typeof trip.end === 'object') {
         result[startkey]['end'] = Object.values(trip.end).map(trip => trip)
       }
-      return result
     }
-    
-  //return {['Felformaterat start/slut par' + i]: trip}
-  
+    return result
  
   })
 
 return trips.reverse()
 }
-
 
 export default normalizeTripData

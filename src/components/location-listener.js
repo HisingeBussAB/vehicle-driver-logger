@@ -54,6 +54,6 @@ export default geolocated({
     maximumAge        : 200000,
     timeout           : 20000
   },
-  watchPosition      : true,
+  watchPosition      : false,
   userDecisionTimeout: 60000
 })(connect(mapStateToProps, mapDispatchToProps)(LocationListener))

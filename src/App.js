@@ -9,6 +9,7 @@ import { authStateChange } from './actions/'
 import PropTypes from 'prop-types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
+import History from './components/History'
 
 import './App.css'
 
@@ -91,7 +92,7 @@ class App extends Component {
               { isSignedin ? (
                 <main className="main-content mt-5 pt-5 pb-5 mb-5 pl-2 pr-2 container text-center">
               <Route exact path={'/'} render={() => <Home />} />
-              <Route exact path={'/history/'} render={() => <Signin />} />
+              <Route exact path={'/history/'} render={() => <History />} />
               <Route exact path={'/signin/'} render={() => <Signin />} />
               </main>
               ) : (

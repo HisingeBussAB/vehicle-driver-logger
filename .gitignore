@@ -30,11 +30,7 @@ firebase-debug.log*
 .firebase/hosting.YnVpbGQ.cache
 hosting.YnVpbGQ.cache
 firebase.js
-hosting.YnVpbGQ.cache
 config.js
 config/config.js
-.firebase/hosting.YnVpbGQ.cache
-.firebase/hosting.YnVpbGQ.cache
-*.cache
-.firebase/hosting.YnVpbGQ.cache
-*.cache
+config/firebase.js
+
