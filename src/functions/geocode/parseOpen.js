@@ -1,6 +1,6 @@
 export default function parseGoogleResponse (json) {
   let result = ''
-  console.log(json)
+
   if (typeof json.address.road_reference_intl === 'string' && json.address.road_reference_intl.length > 0) { result = json.address.road_reference_intl }
   if (typeof json.address.road_reference === 'string' && json.address.road_reference.length > 0) { result = json.address.road_reference }
   if (typeof json.address.residential === 'string' && json.address.residential.length > 0) { result = json.address.residential }

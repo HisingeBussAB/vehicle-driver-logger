@@ -6,6 +6,10 @@
       ".read": "auth != null && root.child('users/' + auth.uid).exists()",
       ".write": "false"
     },
+    "MapsKey": {
+      ".read": "auth != null && root.child('users/' + auth.uid).exists()",
+      ".write": "false"
+    },
     "users": {
       ".read": "auth != null",
       ".write": "false"
