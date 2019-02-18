@@ -19,9 +19,10 @@ const initialState = {
       accuracy        : null,
       latitude        : null,
       longitude       : null,
-      isActive        : false
-    },
-    address: ''
+      isActive        : false,
+      address        : '',
+      srcIsGooogle         : false
+    }
   }
 }
 const enhancers = []

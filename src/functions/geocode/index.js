@@ -27,7 +27,7 @@ export async function fromLatLng (_lat, _lng, _GoogleKey = false) {
 
   const gjson = await getJson(googleUrl)
   if (typeof gjson === 'object' && gjson.status === 'OK') {
-    return parseGoogleResponse(gjson)
+    return 'GOOGLE: ' + parseGoogleResponse(gjson)
   }
 
   // eslint-disable-next-line no-console

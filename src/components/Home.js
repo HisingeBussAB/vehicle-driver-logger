@@ -311,7 +311,7 @@ class Home extends Component {
   }
 
   render () {
-    const { isSignedin = false, user, address, locError } = this.props
+    const { isSignedin = false, user, address, locError, adrSrc } = this.props
     const { ...state } = this.state
 
     const options = [
@@ -375,7 +375,7 @@ class Home extends Component {
               <footer className="text-center text-danger p-0 m-0 mx-auto w-75" style={{ height: '16px', fontSize: '.7rem' }}>{state.countererror ? state.countererror : state.counterwarn }</footer>
               <div className="input-group mt-2 p-0 w-100 mx-auto">
                 <div className="input-group-prepend">
-                  <span className="input-group-text" id="inputGroup-sizing-default">Adress:</span>
+                  <span className={'input-group-text ' + (adrSrc ? 'text-success' : '')} id="inputGroup-sizing-default">Adress:</span>
                 </div>
                 <AddressInput id="address" name="address" defaultAddress={address} key={address} onChange={this.handleAddressChange} addressRef={el => this.inputAddress = el} />
                 <div className="input-group-append">
@@ -427,7 +427,8 @@ const mapStateToProps = state => ({
   user      : state.user.user,
   address   : state.location.address,
   coords    : state.location.coords,
-  locError  : state.location.error
+  locError  : state.location.error,
+  adrSrc: state.location.srcIsGoogle
 })
 
 const mapDispatchToProps = dispatch => bindActionCreators({

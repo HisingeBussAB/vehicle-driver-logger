@@ -28,7 +28,13 @@ export function updateGeolocation (_coords = false, isGeolocationAvailable = fal
           return error
         })
     } 
-    const address = temp
+
+    if (typeof temp !== 'string') {
+      temp = 'error!'
+    }
+
+    const src = temp.search('GOOGLE:') ? true : false
+    const address = temp.replace('GOOGLE:', '')
 
     dispatch({
       type   : 'GET_LOCATION',
@@ -36,7 +42,8 @@ export function updateGeolocation (_coords = false, isGeolocationAvailable = fal
         error  : error,
         active : isActive,
         coords : coords,
-        address: address
+        address: address,
+        srcIsGooogle: src
       }
     })
   }

@@ -7,7 +7,7 @@ export default function parseGoogleResponse (json) {
     if (typeof json.address.county === 'string' && json.address.county.length > 0) { result += ', ' + json.address.county.replace(' kommun', '') }
   }
   if (result.length > 4) {
-    if (typeof json.address.country === 'string' && json.address.country !== 'Sweden') { result += ', ' + json.city.country }
+    if (typeof json.address.country === 'string' && (json.address.country !== 'Sweden' || json.address.country !== 'Sverige')) { result += ', ' + json.address.country }
     return result
   }
   return 'Kan inte tolka OK svar från OpenStreetMap.' 
