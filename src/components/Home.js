@@ -326,7 +326,6 @@ class Home extends Component {
 
         {isSignedin ? (
           <div>
-            <h1><i>TEST</i></h1>
             <h4>Förare: {user.displayName}</h4>
             <form className="w-100 py-2 my-1 mx-auto" style={{ width: '100%', maxWidth: '650px' }}>
 
