@@ -13,7 +13,6 @@ import normalizeTripData from '../functions/normalizeTripData'
 import LastTripsList from './list/lasttripslist'
 import { Typeahead } from 'react-bootstrap-typeahead'
 
-
 class Home extends Component {
   constructor (props) {
     super(props)
@@ -67,7 +66,7 @@ class Home extends Component {
       if (result !== null && typeof result === 'object') {
         const types = Object.values(result).map(item => item.type)
         const reversedType = types[0] === 'end' ? 'start' : 'end'
-        this.setState({ lastType: reversedType, type: reversedType }, () => this.setLastRegno())
+        this.setState({ lastType: types[0], type: reversedType }, () => this.setLastRegno())
       }
     })
 
@@ -76,20 +75,20 @@ class Home extends Component {
     this.getLastCounter(true)
   }
 
-  setLastRegno = () => { 
+  setLastRegno = () => {
+    const { user } = this.props
     const { type, lastType } = this.state
-    if (type === 'start' && lastType === 'end') {
-
+    if (type === 'end' && lastType === 'start') {
+      const ref = firebase.database().ref('userData/' + user.uid + '/list/')
+      ref.orderByChild('type').equalTo('start').limitToLast(1).once('value').then(snapshot => {
+        if (snapshot.val() !== null && typeof snapshot.val() === 'object' && typeof Object.values(snapshot.val())[0].regno === 'string') {
+          this.typeahead.getInstance().getInput().value = Object.values(snapshot.val())[0].regno
+          this.setState({ selected: [Object.values(snapshot.val())[0].regno] }, () => this.getLastCounter(true))
+        }
+      })
     }
-    /*
-    const ref = firebase.database().ref('userData/' + user.uid + '/list/')
-    ref.orderByChild('type').equalTo('start').limitToLast(1).once('value').then(snapshot => {
-      if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
-        snapshot.forEach((childSnapshot) => {
-          const value = childSnapshot.val()
 
-*/
-        //const value = this.typeahead.getInstance().getInput().value
+    // const value = this.typeahead.getInstance().getInput().value
   }
 
   writeNewPost = (e) => {
@@ -199,20 +198,20 @@ class Home extends Component {
         if (snapshot.val() !== null && typeof snapshot.val() === 'object') {
           snapshot.forEach((childSnapshot) => {
             const value = childSnapshot.val()
-            if (Number.isInteger(Number(value.counter)) && !(value.counter < 100 || value.counter > 50000000)) { this.setState({ sendMsg: '', lastCounter: value.counter }, () => {if (counter !== '') this.validateCounter()}) }
+            if (Number.isInteger(Number(value.counter)) && !(value.counter < 100 || value.counter > 50000000)) { this.setState({ sendMsg: '', lastCounter: value.counter }, () => { if (counter !== '') this.validateCounter() }) }
             if (doReset && (countererror !== false || counterwarn !== false || typeof counter === 'undefined' || counter === 0 || counter === null || counter === '')) {
-              this.setState({ counter: value.counter }, () =>  {if (counter !== '') this.validateCounter()})
+              this.setState({ counter: value.counter }, () => { if (counter !== '') this.validateCounter() })
             } else if (typeof counter === 'undefined' || counter === 0 || counter === null || counter === '') {
-              this.setState({ counter: '' }, () =>  {if (counter !== '') this.validateCounter()})
+              this.setState({ counter: '' }, () => { if (counter !== '') this.validateCounter() })
             }
             return true
           })
         } else {
-          this.setState({lastCounter: false}, () =>  {if (counter !== '') this.validateCounter()})
+          this.setState({ lastCounter: false }, () => { if (counter !== '') this.validateCounter() })
         }
       })
     } else {
-      this.setState({lastCounter: false}, () =>  {if (counter !== '') this.validateCounter()})
+      this.setState({ lastCounter: false }, () => { if (counter !== '') this.validateCounter() })
     }
   }
 
@@ -378,7 +377,7 @@ class Home extends Component {
                 </div>
                 <AddressInput id="address" name="address" defaultAddress={address} key={address} onChange={this.handleAddressChange} addressRef={el => this.inputAddress = el} />
                 <div className="input-group-append">
-                  <span className="input-group-text p-0"><button type="button" className="close" onClick={() => { this.inputAddress.value = '' }} style={{ padding: '2px', paddingBottom: '6px' }} aria-label="Close">
+                  <span className="input-group-text p-0"><button type="button" className="close" onClick={() => { this.setState({ address: '' }) }} style={{ padding: '2px', paddingBottom: '6px' }} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button></span>
                 </div>
@@ -397,7 +396,7 @@ class Home extends Component {
               <footer className={'text-center p-1 m-1 mx-auto w-75 ' + (state.sendStatus ? 'text-success' : 'text-danger')} style={{ fontWeight: 'bold', fontSize: '1rem' }}>{state.sendMsg === '' ? null : state.sendMsg}</footer>
             </form>
             <div className="small my-3 p-1 w-100 mx-auto text-center">
-              <LastTripsList tripData={normalizeTripData(state.fbtrips)} isHistory={false}/>
+              <LastTripsList tripData={normalizeTripData(state.fbtrips)} isHistory={false} />
 
             </div>
 
@@ -418,7 +417,8 @@ Home.propTypes = {
   user      : PropTypes.object,
   address   : PropTypes.string,
   coords    : PropTypes.object,
-  locError  : PropTypes.string
+  locError  : PropTypes.string,
+  adrSrc    : PropTypes.bool
 }
 
 const mapStateToProps = state => ({
@@ -427,7 +427,7 @@ const mapStateToProps = state => ({
   address   : state.location.address,
   coords    : state.location.coords,
   locError  : state.location.error,
-  adrSrc: state.location.srcIsGoogle
+  adrSrc    : state.location.srcIsGoogle
 })
 
 const mapDispatchToProps = dispatch => bindActionCreators({
