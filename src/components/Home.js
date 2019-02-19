@@ -16,6 +16,7 @@ import { Typeahead } from 'react-bootstrap-typeahead'
 class Home extends Component {
   constructor (props) {
     super(props)
+    const { address } = this.props
     this.state = {
       type         : 'start',
       lastType     : false,
@@ -34,7 +35,8 @@ class Home extends Component {
       selected     : [],
       lastCounter  : false,
       sendMsg      : '',
-      sendStatus   : true
+      sendStatus   : true,
+      address      : address
     }
   }
 
@@ -310,7 +312,7 @@ class Home extends Component {
   }
 
   render () {
-    const { isSignedin = false, user, address, locError, adrSrc } = this.props
+    const { isSignedin = false, user, locError, adrSrc } = this.props
     const { ...state } = this.state
 
     const options = [
@@ -375,9 +377,9 @@ class Home extends Component {
                 <div className="input-group-prepend">
                   <span className={'input-group-text ' + (adrSrc ? 'text-success' : '')} id="inputGroup-sizing-default">Adress:</span>
                 </div>
-                <AddressInput id="address" name="address" defaultAddress={address} key={address} onChange={this.handleAddressChange} addressRef={el => this.inputAddress = el} />
+                <AddressInput id="address" name="address" defaultAddress={state.address} key={state.address} addressRef={el => this.inputAddress = el} />
                 <div className="input-group-append">
-                  <span className="input-group-text p-0"><button type="button" className="close" onClick={() => { this.setState({ address: '' }) }} style={{ padding: '2px', paddingBottom: '6px' }} aria-label="Close">
+                  <span className="input-group-text p-0"><button type="button" className="close" onClick={() => { this.inputAddress.value = ''; this.setState({ address: '' }) }} style={{ padding: '2px', paddingBottom: '6px' }} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button></span>
                 </div>
